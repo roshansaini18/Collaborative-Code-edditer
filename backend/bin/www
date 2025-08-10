@@ -13,189 +13,186 @@ const server = http.createServer(app);
 // Socket.io for chat & presence
 const { Server } = require('socket.io');
 const io = new Server(server, {
-  cors: {
-    origin: process.env.FRONTEND_ORIGIN || '*',
-    methods: ['GET', 'POST'],
-  }
+  cors: {
+    origin: process.env.FRONTEND_ORIGIN || '*',
+    methods: ['GET', 'POST'],
+  }
 });
 
 // map socketId -> { roomId, user }
 const socketUserMap = {};
 
 io.on('connection', (socket) => {
-  console.log(`Socket.io: connected: ${socket.id}`);
+  console.log(`Socket.io: connected: ${socket.id}`);
 
-  socket.on('join-room', async ({ roomId, user } = {}) => {
-    if (!roomId || !user) {
-      console.error('join-room event: missing roomId or user.');
-      return;
-    }
+  socket.on('join-room', async ({ roomId, user } = {}) => {
+    if (!roomId || !user) {
+      console.error('join-room event: missing roomId or user.');
+      return;
+    }
 
-    const sanitizedUser = {
-      userName: (user.userName || user.name || user.username || user.email || 'Anonymous').toString(),
-    };
-    if (user.avatar) sanitizedUser.avatar = user.avatar;
+    const sanitizedUser = {
+      userName: (user.userName || user.name || user.username || user.email || 'Anonymous').toString(),
+    };
+    if (user.avatar) sanitizedUser.avatar = user.avatar;
 
-    socketUserMap[socket.id] = { roomId, user: sanitizedUser };
-    socket.join(roomId);
+    socketUserMap[socket.id] = { roomId, user: sanitizedUser };
+    socket.join(roomId);
 
-    try {
-      const room = await Room.findOneAndUpdate(
-        { roomId },
-        {
-          $setOnInsert: { roomId, code: '' },
-          $addToSet: { users: sanitizedUser }
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
+    try {
+      const room = await Room.findOneAndUpdate(
+        { roomId },
+        {
+          $setOnInsert: { roomId, code: '' },
+          $addToSet: { users: sanitizedUser }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
 
-      // send initial data to joining socket
-      socket.emit('initial-code', { code: room.code || '' });
-      socket.emit('initial-messages', room.messages || []);
-      socket.emit('initial-users', room.users || []);
+      // send initial data to joining socket
+      socket.emit('initial-code', { code: room.code || '' });
+      socket.emit('initial-messages', room.messages || []);
+      socket.emit('initial-users', room.users || []);
 
-      // broadcast updated users list
-      io.in(roomId).emit('update-users', room.users || []);
-      console.log(`Socket.io: User ${sanitizedUser.userName} joined room ${roomId}. Users: ${room.users.length}`);
-    } catch (err) {
-      console.error('join-room database error:', err);
-    }
-  });
+      // broadcast updated users list
+      io.in(roomId).emit('update-users', room.users || []);
+      console.log(`Socket.io: User ${sanitizedUser.userName} joined room ${roomId}. Users: ${room.users.length}`);
+    } catch (err) {
+      console.error('join-room database error:', err);
+    }
+  });
 
-  socket.on('leave-room', async ({ roomId, user } = {}) => {
-    const mapping = socketUserMap[socket.id] || {};
-    const userToRemove = (user && (user.userName || user.name || user.email)) || mapping.user?.userName;
+  socket.on('leave-room', async ({ roomId, user } = {}) => {
+    const mapping = socketUserMap[socket.id] || {};
+    const userToRemove = (user && (user.userName || user.name || user.email)) || mapping.user?.userName;
 
-    if (!roomId || !userToRemove) return;
+    if (!roomId || !userToRemove) return;
 
-    try {
-      const room = await Room.findOneAndUpdate(
-        { roomId },
-        { $pull: { users: { userName: userToRemove } } },
-        { new: true }
-      );
-      if (room) {
-        io.in(roomId).emit('update-users', room.users || []);
-        console.log(`Socket.io: User ${userToRemove} left room ${roomId}. Users now: ${room.users.length}`);
-      }
-    } catch (err) {
-      console.error('leave-room error:', err);
-    } finally {
-      delete socketUserMap[socket.id];
-      try { socket.leave(roomId); } catch (e) {}
-    }
-  });
+    try {
+      const room = await Room.findOneAndUpdate(
+        { roomId },
+        { $pull: { users: { userName: userToRemove } } },
+        { new: true }
+      );
+      if (room) {
+        io.in(roomId).emit('update-users', room.users || []);
+        console.log(`Socket.io: User ${userToRemove} left room ${roomId}. Users now: ${room.users.length}`);
+      }
+    } catch (err) {
+      console.error('leave-room error:', err);
+    } finally {
+      delete socketUserMap[socket.id];
+      try { socket.leave(roomId); } catch (e) {}
+    }
+  });
 
-  socket.on('send-message', async ({ roomId, message } = {}) => {
-    if (!roomId || !message || !message.userName) {
-      console.error('send-message event: roomId or message.userName is missing.');
-      return;
-    }
-    try {
-      await Room.findOneAndUpdate(
-        { roomId },
-        { $push: { messages: message } },
-        { upsert: true }
-      );
-      io.in(roomId).emit('receive-message', message);
-      console.log(`Socket.io: Message broadcasted to room ${roomId}.`);
-    } catch (err) {
-      console.error('send-message error:', err);
-    }
-  });
+  socket.on('send-message', async ({ roomId, message } = {}) => {
+    if (!roomId || !message || !message.userName) {
+      console.error('send-message event: roomId or message.userName is missing.');
+      return;
+    }
+    try {
+      await Room.findOneAndUpdate(
+        { roomId },
+        { $push: { messages: message } },
+        { upsert: true }
+      );
+      io.in(roomId).emit('receive-message', message);
+      console.log(`Socket.io: Message broadcasted to room ${roomId}.`);
+    } catch (err) {
+      console.error('send-message error:', err);
+    }
+  });
 
-  socket.on('disconnect', async () => {
-    console.log(`Socket.io: disconnected: ${socket.id}`);
-    const mapping = socketUserMap[socket.id];
-    if (mapping && mapping.roomId && mapping.user && mapping.user.userName) {
-      const { roomId, user } = mapping;
-      try {
-        const room = await Room.findOneAndUpdate(
-          { roomId },
-          { $pull: { users: { userName: user.userName } } },
-          { new: true }
-        );
-        if (room) {
-          io.in(roomId).emit('update-users', room.users || []);
-          console.log(`Socket.io: User ${user.userName} removed from room ${roomId} on disconnect. Users now: ${room.users.length}`);
-        }
-      } catch (err) {
-        console.error('disconnect error:', err);
-      }
-    }
-    delete socketUserMap[socket.id];
-  });
+  socket.on('disconnect', async () => {
+    console.log(`Socket.io: disconnected: ${socket.id}`);
+    const mapping = socketUserMap[socket.id];
+    if (mapping && mapping.roomId && mapping.user && mapping.user.userName) {
+      const { roomId, user } = mapping;
+      try {
+        const room = await Room.findOneAndUpdate(
+          { roomId },
+          { $pull: { users: { userName: user.userName } } },
+          { new: true }
+        );
+        if (room) {
+          io.in(roomId).emit('update-users', room.users || []);
+          console.log(`Socket.io: User ${user.userName} removed from room ${roomId} on disconnect. Users now: ${room.users.length}`);
+        }
+      } catch (err) {
+        console.error('disconnect error:', err);
+      }
+    }
+    delete socketUserMap[socket.id];
+  });
 });
 
 // y-websocket setup for Monaco/Yjs (websocket upgrade)
 const { WebSocketServer } = require('ws');
-const { setupWSConnection } = require('y-websocket/bin/utils');
+// This line was moved from the top
+const { setupWSConnection } = require('y-websocket/bin/utils'); 
 const wss = new WebSocketServer({ noServer: true });
 
 wss.on('connection', (ws, req) => {
-  // forward to y-websocket's handler (setupWSConnection expects (conn, req, options))
-  setupWSConnection(ws, req);
+  // This is the crucial part that was missing!
+  // It forwards the connection to the y-websocket library's handler.
+  setupWSConnection(ws, req);
 });
 
-// IMPORTANT: only handle upgrades for the Y-WebSocket path ('/yws').
-// DO NOT destroy other sockets here — let other upgrade listeners (Socket.IO) handle them.
 server.on('upgrade', (request, socket, head) => {
-  try {
-    const pathname = request.url || '';
-    if (pathname.startsWith('/yws')) {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
-      });
-    } else {
-      // do nothing so other upgrade listeners (e.g. Socket.IO) can process this upgrade
-      // just return and do NOT destroy the socket
-      return;
-    }
-  } catch (err) {
-    // on any unexpected error, make sure socket is closed to avoid hanging
-    console.error('Upgrade handler error:', err);
-    try { socket.destroy(); } catch(e){/* ignore */ }
-  }
+  try {
+    const pathname = request.url || '';
+    if (pathname.startsWith('/yws')) {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } else {
+      return;
+    }
+  } catch (err) {
+    console.error('Upgrade handler error:', err);
+    try { socket.destroy(); } catch(e){/* ignore */ }
+  }
 });
 
 connectDB().then(() => {
-  server.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
-  });
-  server.on('error', onError);
-  server.on('listening', onListening);
+  server.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+  });
+  server.on('error', onError);
+  server.on('listening', onListening);
 }).catch(err => {
-  console.error('DB connection failed, exiting', err);
-  process.exit(1);
+  console.error('DB connection failed, exiting', err);
+  process.exit(1);
 });
 
 function normalizePort(val) {
-  const p = parseInt(val, 10);
-  if (isNaN(p)) return val;
-  if (p >= 0) return p;
-  return false;
+  const p = parseInt(val, 10);
+  if (isNaN(p)) return val;
+  if (p >= 0) return p;
+  return false;
 }
 
 function onError(error) {
-  if (error.syscall !== 'listen') throw error;
-  const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
+  if (error.syscall !== 'listen') throw error;
+  const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
 }
 
 function onListening() {
-  const addr = server.address();
-  const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
-  console.log('Listening on ' + bind);
-  debug('Listening on ' + bind);
+  const addr = server.address();
+  const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
+  console.log('Listening on ' + bind);
+  debug('Listening on ' + bind);
 }

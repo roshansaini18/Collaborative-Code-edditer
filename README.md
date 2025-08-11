@@ -6,7 +6,7 @@ An interactive, real-time collaborative coding environment.
 
 ## 🚀 Live Demo
 
-[[Link to your live application here](https://collaborative-code-kelj.onrender.com/)]
+[[Live View](https://collaborative-code-kelj.onrender.com/)]
 
 ---
 

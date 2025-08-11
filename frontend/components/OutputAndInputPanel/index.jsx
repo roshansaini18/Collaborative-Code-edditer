@@ -13,6 +13,7 @@ const OutputAndInputPanel = ({ input, setInput}) => (
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="Enter input here..."
+         style={{height:'700px'}}
       />
     </div>
   </div>

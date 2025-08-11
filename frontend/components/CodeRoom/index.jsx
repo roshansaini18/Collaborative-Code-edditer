@@ -213,83 +213,88 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
         };
     }, []);
 
-    // --- CODE RUNNER LOGIC ---
-    const handleRunCode = async () => {
-        const code = editorRef.current.getValue();
-        if (!code) {
-            toast.error('Code cannot be empty!');
-            return;
-        }
+   const handleRunCode = async () => {
+    if (!editorRef.current) {
+        toast.error('Editor is not ready yet!');
+        return;
+    }
+    const code = editorRef.current.getValue();
+    if (!code) {
+        toast.error('Code cannot be empty!');
+        return;
+    }
 
-        setIsRunning(true);
-        setOutput('');
-        try {
-            // Updated endpoint to use the environment variable
-            const apiUrl = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:3001';
-            const response = await fetch(`${apiUrl}/api/run-code`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    code: code,
-                    language: language,
-                    input: input,
-                }),
-            });
+    setIsRunning(true);
+    setOutput('');
+    try {
+        const apiUrl = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:3001';
+        const response = await fetch(`${apiUrl}/api/run-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                code: code,
+                language: language,
+                input: input,
+            }),
+        });
 
-            const result = await response.json();
+        const result = await response.json();
 
-            if (response.ok) {
-                if (result.stderr) {
-                    setOutput(`Execution Error:\n${result.stderr}`);
-                } else if (result.compile_output) {
-                    setOutput(`Compilation Error:\n${result.compile_output}`);
-                } else if (result.stdout) {
-                    setOutput(result.stdout);
-                } else {
-                    setOutput('No output received.');
-                }
+        if (response.ok) {
+            if (result.stderr) {
+                setOutput(`Execution Error:\n${result.stderr}`);
+            } else if (result.compile_output) {
+                setOutput(`Compilation Error:\n${result.compile_output}`);
+            } else if (result.stdout) {
+                setOutput(result.stdout);
             } else {
-                setOutput(`Error: ${result.error || 'An unknown error occurred.'}`);
+                setOutput('No output received.');
             }
-        } catch (error) {
-            console.error('Code execution failed:', error);
-            setOutput('Failed to connect to the code runner backend.');
-        } finally {
-            setIsRunning(false);
+        } else {
+            setOutput(`Error: ${result.error || 'An unknown error occurred.'}`);
         }
-    };
-    // ----------------------------
+    } catch (error) {
+        console.error('Code execution failed:', error);
+        setOutput('Failed to connect to the code runner backend.');
+    } finally {
+        setIsRunning(false);
+    }
+};
+// ----------------------------
 
-    // --- SAVE LOGIC ---
-    const handleSaveCode = async () => {
-        const code = editorRef.current.getValue();
-        if (!code) {
-            toast.error('Code cannot be empty!');
-            return;
+// --- SAVE LOGIC ---
+const handleSaveCode = async () => {
+    if (!editorRef.current) {
+        toast.error('Editor is not ready yet!');
+        return;
+    }
+    const code = editorRef.current.getValue();
+    if (!code) {
+        toast.error('Code cannot be empty!');
+        return;
+    }
+
+    try {
+        const apiUrl = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:3001';
+        const response = await fetch(`${apiUrl}/api/save-code/${roomId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ code: code }),
+        });
+
+        if (response.ok) {
+            toast.success('Code saved successfully!');
+        } else {
+            const errorData = await response.json();
+            toast.error(`Failed to save code: ${errorData.message}`);
         }
-
-        try {
-            // Updated endpoint to use the environment variable
-            const apiUrl = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:3001';
-            const response = await fetch(`${apiUrl}/api/save-code/${roomId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ code: code }),
-            });
-
-            if (response.ok) {
-                toast.success('Code saved successfully!');
-            } else {
-                const errorData = await response.json();
-                toast.error(`Failed to save code: ${errorData.message}`);
-            }
-        } catch (error) {
-            console.error('Save code failed:', error);
-            toast.error('Failed to connect to the backend server.');
-        }
-    };
+    } catch (error) {
+        console.error('Save code failed:', error);
+        toast.error('Failed to connect to the backend server.');
+    }
+};
     return (
  <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
             <ToastContainer position="top-right" autoClose={2000} hideProgressBar />

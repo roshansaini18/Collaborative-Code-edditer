@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * Renders the input and output consoles as resizable panels.
  */
-const OutputAndInputPanel = ({ input, setInput, output }) => (
+const OutputAndInputPanel = ({ input, setInput}) => (
   <div className="flex-grow flex flex-col relative">
     {/* Input Console */}
     <div className="bg-gray-900 text-white p-4 font-mono overflow-auto shadow-inner" style={{ height: '50%' }}>
@@ -14,11 +14,6 @@ const OutputAndInputPanel = ({ input, setInput, output }) => (
         onChange={(e) => setInput(e.target.value)}
         placeholder="Enter input here..."
       />
-    </div>
-
-    {/* Output Console */}
-    <div className="bg-gray-900 text-white p-4 font-mono overflow-auto rounded-b-lg shadow-inner" style={{ height: '50%' }}>
-      <pre>{output}</pre>
     </div>
   </div>
 );

@@ -1,6 +1,4 @@
-
-
-import React,{ useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import * as Y from 'yjs';
 import { MonacoBinding } from 'y-monaco';
@@ -11,15 +9,6 @@ import Header from '../Header';
 import ChatSidebar from '../ChatSlidebar';
 import CodeEditorPanel from '../CodeEditorPanel';
 import OutputAndInputPanel from '../OutputAndInputPanel';
-import { Flex, Splitter, Typography } from 'antd';
-
-const Desc = props => (
-  <Flex justify="center" align="center" style={{ height: '100%' }}>
-    <Typography.Title type="secondary" level={5} style={{ whiteSpace: 'nowrap' }}>
-      {props.text}
-    </Typography.Title>
-  </Flex>
-);
 
 const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
     const [users, setUsers] = useState([]);
@@ -34,8 +23,6 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
 
     const [sidebarWidth, setSidebarWidth] = useState(window.innerWidth / 4);
     const [editorHeight, setEditorHeight] = useState(500);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
 
     const isDraggingSidebar = useRef(false);
     const isDraggingEditor = useRef(false);
@@ -51,15 +38,6 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
     const providerRef = useRef(null);
     const bindingRef = useRef(null);
     const pendingInitialCode = useRef(null);
-
-    //for mobile size
-    useEffect(() => {
-  const handleResize = () => {
-    setIsMobile(window.innerWidth < 768);
-  };
-  window.addEventListener('resize', handleResize);
-  return () => window.removeEventListener('resize', handleResize);
-}, []);
 
     // Get current user from localStorage
     const currentUser = (() => {
@@ -213,90 +191,87 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
         };
     }, []);
 
-   const handleRunCode = async () => {
-    if (!editorRef.current) {
-        toast.error('Editor is not ready yet!');
-        return;
-    }
-    const code = editorRef.current.getValue();
-    if (!code) {
-        toast.error('Code cannot be empty!');
-        return;
-    }
+    // --- CODE RUNNER LOGIC ---
+    const handleRunCode = async () => {
+        const code = editorRef.current.getValue();
+        if (!code) {
+            toast.error('Code cannot be empty!');
+            return;
+        }
 
-    setIsRunning(true);
-    setOutput('');
-    try {
-        const apiUrl = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:3001';
-        const response = await fetch(`${apiUrl}/api/run-code`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                code: code,
-                language: language,
-                input: input,
-            }),
-        });
+        setIsRunning(true);
+        setOutput('');
+        try {
+            // Updated endpoint to use the environment variable
+            const apiUrl = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:3001';
+            const response = await fetch(`${apiUrl}/api/run-code`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code: code,
+                    language: language,
+                    input: input,
+                }),
+            });
 
-        const result = await response.json();
+            const result = await response.json();
 
-        if (response.ok) {
-            if (result.stderr) {
-                setOutput(`Execution Error:\n${result.stderr}`);
-            } else if (result.compile_output) {
-                setOutput(`Compilation Error:\n${result.compile_output}`);
-            } else if (result.stdout) {
-                setOutput(result.stdout);
+            if (response.ok) {
+                if (result.stderr) {
+                    setOutput(`Execution Error:\n${result.stderr}`);
+                } else if (result.compile_output) {
+                    setOutput(`Compilation Error:\n${result.compile_output}`);
+                } else if (result.stdout) {
+                    setOutput(result.stdout);
+                } else {
+                    setOutput('No output received.');
+                }
             } else {
-                setOutput('No output received.');
+                setOutput(`Error: ${result.error || 'An unknown error occurred.'}`);
             }
-        } else {
-            setOutput(`Error: ${result.error || 'An unknown error occurred.'}`);
+        } catch (error) {
+            console.error('Code execution failed:', error);
+            setOutput('Failed to connect to the code runner backend.');
+        } finally {
+            setIsRunning(false);
         }
-    } catch (error) {
-        console.error('Code execution failed:', error);
-        setOutput('Failed to connect to the code runner backend.');
-    } finally {
-        setIsRunning(false);
-    }
-};
-// ----------------------------
+    };
+    // ----------------------------
 
-// --- SAVE LOGIC ---
-const handleSaveCode = async () => {
-    if (!editorRef.current) {
-        toast.error('Editor is not ready yet!');
-        return;
-    }
-    const code = editorRef.current.getValue();
-    if (!code) {
-        toast.error('Code cannot be empty!');
-        return;
-    }
-
-    try {
-        const apiUrl = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:3001';
-        const response = await fetch(`${apiUrl}/api/save-code/${roomId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ code: code }),
-        });
-
-        if (response.ok) {
-            toast.success('Code saved successfully!');
-        } else {
-            const errorData = await response.json();
-            toast.error(`Failed to save code: ${errorData.message}`);
+    // --- SAVE LOGIC ---
+    const handleSaveCode = async () => {
+        const code = editorRef.current.getValue();
+        if (!code) {
+            toast.error('Code cannot be empty!');
+            return;
         }
-    } catch (error) {
-        console.error('Save code failed:', error);
-        toast.error('Failed to connect to the backend server.');
-    }
-};
+
+        try {
+            // Updated endpoint to use the environment variable
+            const apiUrl = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:3001';
+            const response = await fetch(`${apiUrl}/api/save-code/${roomId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ code: code }),
+            });
+
+            if (response.ok) {
+                toast.success('Code saved successfully!');
+            } else {
+                const errorData = await response.json();
+                toast.error(`Failed to save code: ${errorData.message}`);
+            }
+        } catch (error) {
+            console.error('Save code failed:', error);
+            toast.error('Failed to connect to the backend server.');
+        }
+    };
+    // ----------------------------
+
     return (
- <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
+        <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
             <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
             <Header
                 roomId={roomId}
@@ -310,9 +285,26 @@ const handleSaveCode = async () => {
                 }}
                 toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             />
-              <Splitter style={{ height: '100%', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }} layout={isMobile ? 'vertical' : 'horizontal'}>
-    <Splitter.Panel collapsible>
-            <CodeEditorPanel
+            <main className="flex-grow flex flex-col lg:flex-row overflow-hidden min-w-0">
+                <ChatSidebar
+                    users={users}
+                    messages={messages}
+                    chatInput={chatInput}
+                    setChatInput={setChatInput}
+                    onSendMessage={handleSendMessage} // Correct prop name
+                    width={sidebarWidth}
+                    isSidebarOpen={isSidebarOpen}
+                    setIsSidebarOpen={setIsSidebarOpen}
+                    style={{ flexShrink: 0 }}
+                />
+
+                {/* Sidebar resizer */}
+                <div
+                    className="hidden lg:block w-2 h-full cursor-col-resize bg-gray-700 hover:bg-gray-500"
+                    onMouseDown={handleSidebarResizeStart}
+                />
+
+                <CodeEditorPanel
                     language={language}
                     setLanguage={setLanguage}
                     theme={theme}
@@ -326,27 +318,11 @@ const handleSaveCode = async () => {
                     onMouseDownEditor={handleEditorResizeStart}
                     style={{ flex: '1 1 auto', minWidth: 0 }}
                 >
+                    <OutputAndInputPanel input={input} setInput={setInput} output={output} />
                 </CodeEditorPanel>
-    </Splitter.Panel>
-    <Splitter.Panel>
-      <Splitter layout="vertical">
-        <Splitter.Panel>
-        <OutputAndInputPanel input={input} setInput={setInput} />
-        </Splitter.Panel>
-        <Splitter.Panel>
-           <div className="bg-gray-900 text-white p-4 font-mono overflow-auto rounded-b-lg shadow-inner" style={{ height: '50%' }}>
-            <div>Output:</div>
-      <pre>{output}</pre>
-    </div>
-        </Splitter.Panel>
-      </Splitter>
-    </Splitter.Panel>
-  </Splitter>
-
-  
-           
-      </div>
-
+            </main>
+        </div>
     );
 };
+
 export default CodeRoom;

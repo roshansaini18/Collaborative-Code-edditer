@@ -12,11 +12,14 @@ const CodeEditorPanel = ({
   handleSaveCode,
   handleEditorDidMount,
   handleEditorChange,
+  editorHeight,
+  editorWidth,
+  onMouseDownEditor,
   children
 }) => {
   const editorRef = useRef(null);
 
-  const handleEditorDidMount = (editor, monaco) => {
+  const handleEditorDidMountWrapper = (editor, monaco) => {
     editorRef.current = editor;
 
     // Define a custom theme based on vs-dark
@@ -29,8 +32,10 @@ const CodeEditorPanel = ({
       },
     });
 
-    // Set the initial theme to the custom-dark theme
-    monaco.editor.setTheme(theme === 'vs-dark' ? 'custom-dark' : 'light');
+    // Call the original onMount prop if it exists
+    if (handleEditorDidMount) {
+      handleEditorDidMount(editor, monaco);
+    }
   };
 
   const toggleTheme = () => {
@@ -39,13 +44,13 @@ const CodeEditorPanel = ({
 
     // Apply the new theme to the editor instance
     if (editorRef.current) {
-      const monaco = editorRef.current.getModel().getModeId().getLanguage().monaco;
+      const monaco = editorRef.current.getModel()._languageId.monaco;
       monaco.editor.setTheme(newTheme === 'vs-dark' ? 'custom-dark' : 'light');
     }
   };
 
   return (
-    <section className="flex-grow flex flex-col relative bg-gray-900">
+    <section className="flex-grow flex flex-col relative" style={{ width: editorWidth }}>
       <div className="p-4 bg-gray-900 text-white flex justify-between items-center flex-wrap gap-2">
         <h2 className="text-lg font-mono">Code Editor</h2>
         <div className="flex gap-2">
@@ -82,14 +87,14 @@ const CodeEditorPanel = ({
           </button>
         </div>
       </div>
-      
+
       <div className="flex-grow flex flex-col relative">
-        <div className="relative flex-grow">
+        <div style={{ height: editorHeight }} className="relative flex-shrink-0">
           <Editor
             height="100%"
             language={language}
             theme={theme === 'vs-dark' ? 'custom-dark' : 'light'}
-            onMount={handleEditorDidMount}
+            onMount={handleEditorDidMountWrapper}
             onChange={handleEditorChange}
             options={{
               automaticLayout: true,
@@ -97,6 +102,10 @@ const CodeEditorPanel = ({
             }}
           />
         </div>
+        <div
+          className="w-full h-2 cursor-row-resize bg-gray-700 hover:bg-gray-500 transition-colors"
+          onMouseDown={onMouseDownEditor}
+        />
         <div className="flex-grow overflow-auto">
           {children}
         </div>

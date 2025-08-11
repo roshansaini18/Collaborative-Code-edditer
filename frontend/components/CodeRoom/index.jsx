@@ -9,6 +9,7 @@ import Header from '../Header';
 import ChatSidebar from '../ChatSlidebar';
 import CodeEditorPanel from '../CodeEditorPanel';
 import OutputAndInputPanel from '../OutputAndInputPanel';
+import {Splitter} from 'antd';
 
 const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
     const [users, setUsers] = useState([]);
@@ -23,7 +24,8 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
 
     const [sidebarWidth, setSidebarWidth] = useState(window.innerWidth / 4);
     const [editorHeight, setEditorHeight] = useState(500);
-
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    
     const isDraggingSidebar = useRef(false);
     const isDraggingEditor = useRef(false);
     const dragStartX = useRef(0);
@@ -38,6 +40,15 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
     const providerRef = useRef(null);
     const bindingRef = useRef(null);
     const pendingInitialCode = useRef(null);
+
+     //for mobile size
+    useEffect(() => {
+  const handleResize = () => {
+    setIsMobile(window.innerWidth < 768);
+  };
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+}, []);
 
     // Get current user from localStorage
     const currentUser = (() => {
@@ -285,26 +296,9 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
                 }}
                 toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             />
-            <main className="flex-grow flex flex-col lg:flex-row overflow-hidden min-w-0">
-                <ChatSidebar
-                    users={users}
-                    messages={messages}
-                    chatInput={chatInput}
-                    setChatInput={setChatInput}
-                    onSendMessage={handleSendMessage} // Correct prop name
-                    width={sidebarWidth}
-                    isSidebarOpen={isSidebarOpen}
-                    setIsSidebarOpen={setIsSidebarOpen}
-                    style={{ flexShrink: 0 }}
-                />
-
-                {/* Sidebar resizer */}
-                <div
-                    className="hidden lg:block w-2 h-full cursor-col-resize bg-gray-700 hover:bg-gray-500"
-                    onMouseDown={handleSidebarResizeStart}
-                />
-
-                <CodeEditorPanel
+                    <Splitter style={{ height: '100%', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }} layout={isMobile ? 'vertical' : 'horizontal'}>
+    <Splitter.Panel collapsible>
+            <CodeEditorPanel
                     language={language}
                     setLanguage={setLanguage}
                     theme={theme}
@@ -318,12 +312,22 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
                     onMouseDownEditor={handleEditorResizeStart}
                     style={{ flex: '1 1 auto', minWidth: 0 }}
                 >
-                    <OutputAndInputPanel input={input} setInput={setInput}/>
-                    <div className="bg-gray-900 text-white p-4 font-mono overflow-auto rounded-b-lg shadow-inner" style={{ height: '50%' }}>
-                 <pre>{output}</pre>
-                </div>
                 </CodeEditorPanel>
-            </main>
+    </Splitter.Panel>
+    <Splitter.Panel>
+      <Splitter layout="vertical">
+        <Splitter.Panel>
+        <OutputAndInputPanel input={input} setInput={setInput} />
+        </Splitter.Panel>
+        <Splitter.Panel>
+           <div className="bg-gray-900 text-white p-4 font-mono overflow-auto rounded-b-lg shadow-inner" style={{ height: '50%' }}>
+            <div>Output:</div>
+      <pre>{output}</pre>
+    </div>
+        </Splitter.Panel>
+      </Splitter>
+    </Splitter.Panel>
+  </Splitter>
         </div>
     );
 };

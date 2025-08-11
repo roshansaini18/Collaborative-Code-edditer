@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+
+import React,{ useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import * as Y from 'yjs';
 import { MonacoBinding } from 'y-monaco';
@@ -9,6 +11,15 @@ import Header from '../Header';
 import ChatSidebar from '../ChatSlidebar';
 import CodeEditorPanel from '../CodeEditorPanel';
 import OutputAndInputPanel from '../OutputAndInputPanel';
+import { Flex, Splitter, Typography } from 'antd';
+
+const Desc = props => (
+  <Flex justify="center" align="center" style={{ height: '100%' }}>
+    <Typography.Title type="secondary" level={5} style={{ whiteSpace: 'nowrap' }}>
+      {props.text}
+    </Typography.Title>
+  </Flex>
+);
 
 const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
     const [users, setUsers] = useState([]);
@@ -23,6 +34,8 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
 
     const [sidebarWidth, setSidebarWidth] = useState(window.innerWidth / 4);
     const [editorHeight, setEditorHeight] = useState(500);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
 
     const isDraggingSidebar = useRef(false);
     const isDraggingEditor = useRef(false);
@@ -38,6 +51,15 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
     const providerRef = useRef(null);
     const bindingRef = useRef(null);
     const pendingInitialCode = useRef(null);
+
+    //for mobile size
+    useEffect(() => {
+  const handleResize = () => {
+    setIsMobile(window.innerWidth < 768);
+  };
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+}, []);
 
     // Get current user from localStorage
     const currentUser = (() => {
@@ -268,10 +290,8 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
             toast.error('Failed to connect to the backend server.');
         }
     };
-    // ----------------------------
-
     return (
-        <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
+ <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
             <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
             <Header
                 roomId={roomId}
@@ -285,26 +305,9 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
                 }}
                 toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             />
-            <main className="flex-grow flex flex-col lg:flex-row overflow-hidden min-w-0">
-                <ChatSidebar
-                    users={users}
-                    messages={messages}
-                    chatInput={chatInput}
-                    setChatInput={setChatInput}
-                    onSendMessage={handleSendMessage} // Correct prop name
-                    width={sidebarWidth}
-                    isSidebarOpen={isSidebarOpen}
-                    setIsSidebarOpen={setIsSidebarOpen}
-                    style={{ flexShrink: 0 }}
-                />
-
-                {/* Sidebar resizer */}
-                <div
-                    className="hidden lg:block w-2 h-full cursor-col-resize bg-gray-700 hover:bg-gray-500"
-                    onMouseDown={handleSidebarResizeStart}
-                />
-
-                <CodeEditorPanel
+              <Splitter style={{ height: '100%', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }} layout={isMobile ? 'vertical' : 'horizontal'}>
+    <Splitter.Panel collapsible>
+            <CodeEditorPanel
                     language={language}
                     setLanguage={setLanguage}
                     theme={theme}
@@ -318,11 +321,27 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
                     onMouseDownEditor={handleEditorResizeStart}
                     style={{ flex: '1 1 auto', minWidth: 0 }}
                 >
-                    <OutputAndInputPanel input={input} setInput={setInput} output={output} />
                 </CodeEditorPanel>
-            </main>
-        </div>
+    </Splitter.Panel>
+    <Splitter.Panel>
+      <Splitter layout="vertical">
+        <Splitter.Panel>
+        <OutputAndInputPanel input={input} setInput={setInput} />
+        </Splitter.Panel>
+        <Splitter.Panel>
+           <div className="bg-gray-900 text-white p-4 font-mono overflow-auto rounded-b-lg shadow-inner" style={{ height: '50%' }}>
+            <div>Output:</div>
+      <pre>{output}</pre>
+    </div>
+        </Splitter.Panel>
+      </Splitter>
+    </Splitter.Panel>
+  </Splitter>
+
+  
+           
+      </div>
+
     );
 };
-
 export default CodeRoom;

@@ -318,7 +318,10 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
                     onMouseDownEditor={handleEditorResizeStart}
                     style={{ flex: '1 1 auto', minWidth: 0 }}
                 >
-                    <OutputAndInputPanel input={input} setInput={setInput} output={output} />
+                    <OutputAndInputPanel input={input} setInput={setInput}/>
+                    <div className="bg-gray-900 text-white p-4 font-mono overflow-auto rounded-b-lg shadow-inner" style={{ height: '50%' }}>
+                 <pre>{output}</pre>
+                </div>
                 </CodeEditorPanel>
             </main>
         </div>

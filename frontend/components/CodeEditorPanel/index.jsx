@@ -85,7 +85,7 @@ const CodeEditorPanel = ({
       </div>
       
       <div className="flex-grow flex flex-col relative">
-        <div style={{ height: editorHeight*1.25 }} className="relative flex-shrink-0">
+        <div style={{ height: editorHeight*1.1 }} className="relative flex-shrink-0">
         <Editor
             height="100%"
             language={language}

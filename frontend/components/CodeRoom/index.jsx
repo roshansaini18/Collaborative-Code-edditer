@@ -25,6 +25,7 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
     const [sidebarWidth, setSidebarWidth] = useState(window.innerWidth / 4);
     const [editorHeight, setEditorHeight] = useState(500);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [isChatOpen, setIsChatOpen] = useState(false);
     
     const isDraggingSidebar = useRef(false);
     const isDraggingEditor = useRef(false);
@@ -295,6 +296,7 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
                     toast.success('Room ID copied 📋');
                 }}
                 toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+                toggleChat={() => setIsChatOpen(!isChatOpen)}
             />
                     <Splitter style={{ height: '100%', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }} layout={isMobile ? 'vertical' : 'horizontal'}>
     <Splitter.Panel collapsible>
@@ -328,6 +330,15 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
       </Splitter>
     </Splitter.Panel>
   </Splitter>
+
+    {isChatOpen && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <ChatSidebar
+      // ...
+      onClose={() => setIsChatOpen(false)}
+    />
+  </div>
+)}
         </div>
     );
 };

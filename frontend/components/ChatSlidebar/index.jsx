@@ -1,6 +1,6 @@
 // frontend/src/components/ChatSidebar.js
 import React, { useEffect, useRef, useState } from "react";
-import { UserOutlined, SmileOutlined, SendOutlined } from "@ant-design/icons";
+import { UserOutlined, SmileOutlined, SendOutlined, CloseOutlined } from "@ant-design/icons";
 import {
     Flex,
     Avatar,
@@ -18,13 +18,12 @@ const ChatSidebar = ({
     users = [],
     messages = [],
     width = 400,
-    chatInput,         // ✅ Use chatInput from props
-    setChatInput,      // ✅ Use setChatInput from props
+    chatInput,
+    setChatInput,
     onSendMessage = () => {},
+    onClose, // Add an onClose prop to handle closing the sidebar
 }) => {
     const chatMessagesRef = useRef(null);
-    // REMOVE local chatInput state
-    // const [chatInput, setChatInput] = useState("");
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [showChat, setShowChat] = useState(true);
 
@@ -32,24 +31,27 @@ const ChatSidebar = ({
     const userData = storedUser ? JSON.parse(storedUser) : {};
     const currentUserName = userData.userName || "Anonymous";
 
+    // Auto-scroll to the bottom of the message list whenever new messages arrive
     useEffect(() => {
         if (chatMessagesRef.current) {
-            chatMessagesRef.current.scrollTop =
-                chatMessagesRef.current.scrollHeight;
+            chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
         }
     }, [messages]);
 
+    // Handle responsive chat visibility based on window width
     useEffect(() => {
         const handleResize = () => {
             setShowChat(window.innerWidth >= 1100);
         };
-        handleResize();
+        handleResize(); // Set initial state
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
     const handleSendMessage = () => {
-        if (!chatInput.trim()) return;
+        // Use optional chaining and trim to safely handle the input
+        if (!chatInput?.trim()) return;
+        
         const newUserMessage = {
             userName: currentUserName,
             text: chatInput,
@@ -59,7 +61,7 @@ const ChatSidebar = ({
             }),
         };
         onSendMessage(newUserMessage);
-        setChatInput("");
+        setChatInput(""); // Clear the input field after sending
     };
 
     const handleKeyPress = (e) => {
@@ -80,14 +82,10 @@ const ChatSidebar = ({
         return (
             <div
                 key={index}
-                className={`flex ${
-                    isCurrentUser ? "justify-end" : "justify-start"
-                } mb-4`}
+                className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} mb-4`}
             >
                 <div
-                    className={`flex ${
-                        isCurrentUser ? "flex-row-reverse" : "flex-row"
-                    } items-start max-w-[80%]`}
+                    className={`flex ${isCurrentUser ? "flex-row-reverse" : "flex-row"} items-start max-w-[80%]`}
                 >
                     <Avatar
                         icon={<UserOutlined />}
@@ -99,9 +97,7 @@ const ChatSidebar = ({
                         size="small"
                     />
                     <div
-                        className={`flex flex-col ${
-                            isCurrentUser ? "items-end" : "items-start"
-                        }`}
+                        className={`flex flex-col ${isCurrentUser ? "items-end" : "items-start"}`}
                     >
                         <Text style={{ fontSize: "12px", marginBottom: "4px", color: "#888" }}>
                             {isCurrentUser ? "You" : msg.userName}
@@ -142,6 +138,24 @@ const ChatSidebar = ({
                 fontFamily: "sans-serif",
             }}
         >
+            {/* Header with Close Button */}
+            <Flex
+                justify="space-between"
+                align="center"
+                style={{
+                    padding: "16px",
+                    borderBottom: "1px solid #e0e0e0",
+                    background: "#fafafa",
+                }}
+            >
+                <Text strong style={{ color: "#000" }}>Chat</Text>
+                <Button 
+                    icon={<CloseOutlined />} 
+                    type="text" 
+                    onClick={onClose} 
+                />
+            </Flex>
+
             {/* Users Section */}
             <div
                 style={{
@@ -177,19 +191,9 @@ const ChatSidebar = ({
                 </div>
             </div>
 
-            {/* ✅ Show Chat section only if there’s enough space */}
+            {/* Chat section */}
             {showChat && (
                 <div className="flex-1 flex flex-col">
-                    <div
-                        style={{
-                            padding: "16px",
-                            borderBottom: "1px solid #e0e0e0",
-                            background: "#fafafa",
-                        }}
-                    >
-                        <Text strong style={{ color: "#000" }}>Chat</Text>
-                    </div>
-
                     {/* Messages Area */}
                     <div
                         ref={chatMessagesRef}
@@ -202,7 +206,7 @@ const ChatSidebar = ({
                     {/* Input Area */}
                     <div
                         style={{
-                            padding: "32px",
+                            padding: "16px", // Adjusted padding for better spacing
                             borderTop: "1px solid #e0e0e0",
                             backgroundColor: "#fafafa",
                         }}
@@ -210,7 +214,7 @@ const ChatSidebar = ({
                         <Flex gap="small">
                             <Popover
                                 content={
-                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", maxWidth: "200px" }}>
                                         {emojiList.map((emoji, idx) => (
                                             <span
                                                 key={idx}
@@ -252,16 +256,14 @@ const ChatSidebar = ({
                             <Button
                                 icon={<SendOutlined />}
                                 onClick={handleSendMessage}
-                                disabled={!chatInput.trim()}
+                                disabled={!chatInput?.trim()} // Use optional chaining for disabled prop
                                 size="middle"
                                 style={{
                                     backgroundColor: "#ff4d4f",
                                     border: "none",
                                     color: "white",
                                 }}
-                            >
-                                Send
-                            </Button>
+                            />
                         </Flex>
                     </div>
                 </div>

@@ -298,7 +298,7 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
                 toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
                 toggleChat={() => setIsChatOpen(!isChatOpen)}
             />
-                    <Splitter style={{ height: '100%', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }} layout={isMobile ? 'vertical' : 'horizontal'}>
+                    <Splitter style={{ height: '90%', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }} layout={isMobile ? 'vertical' : 'horizontal'}>
     <Splitter.Panel collapsible>
             <CodeEditorPanel
                     language={language}
@@ -322,7 +322,7 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
         <OutputAndInputPanel input={input} setInput={setInput} />
         </Splitter.Panel>
         <Splitter.Panel>
-           <div className="bg-gray-900 text-white p-4 font-mono overflow-auto rounded-b-lg shadow-inner" style={{ height: '50%' }}>
+           <div className="bg-gray-900 text-white p-4 font-mono overflow-auto rounded-b-lg shadow-inner" style={{ height: '100%' }}>
             <div>Output:</div>
       <pre>{output}</pre>
     </div>
@@ -332,10 +332,17 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
   </Splitter>
 
     {isChatOpen && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <ChatSidebar
-      // ...
-      onClose={() => setIsChatOpen(false)}
+<div className="absolute right-30 top-16 h-60 w-80 bg-gray-800 transition-transform duration-300 transform translate-x-0">    <ChatSidebar
+       users={users}
+                    messages={messages}
+                    chatInput={chatInput}
+                    setChatInput={setChatInput}
+                    onSendMessage={handleSendMessage} // Correct prop name
+                    width={sidebarWidth}
+                    isSidebarOpen={isSidebarOpen}
+                    setIsSidebarOpen={setIsSidebarOpen}
+                    style={{ flexShrink: 0 }}
+                 onClose={() => setIsChatOpen(false)}
     />
   </div>
 )}

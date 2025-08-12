@@ -1,8 +1,8 @@
 // frontend/src/components/Header.js
 import React from 'react';
-import { FaSignOutAlt, FaShareAlt, FaUsers, FaBars } from 'react-icons/fa';
+import { FaSignOutAlt, FaShareAlt, FaUsers, FaBars,FaComments } from 'react-icons/fa';
 
-const Header = ({ roomId, userProfile, userCount, onLeave, onLogout, handleCopyId, toggleSidebar }) => {
+const Header = ({ roomId, userProfile, userCount, onLeave, onLogout, handleCopyId, toggleSidebar, toggleChat }) => {
   return (
     <header className="flex items-center justify-between bg-gray-800 text-white p-4 shadow-md">
       {/* Left side: Room Info & Actions */}
@@ -40,6 +40,13 @@ const Header = ({ roomId, userProfile, userCount, onLeave, onLogout, handleCopyI
           )}
           <span className="hidden md:block text-sm font-medium">{userProfile?.userName || 'Anonymous'}</span>
         </div>
+        <button
+  onClick={toggleChat}
+  className="p-2 text-gray-400 hover:text-white transition-colors"
+  aria-label="Toggle chat"
+>
+  <FaComments size={20} />
+</button>
         <button 
           onClick={onLeave} 
           className="p-2 bg-red-600 rounded-lg hover:bg-red-700 transition-colors hidden md:block"

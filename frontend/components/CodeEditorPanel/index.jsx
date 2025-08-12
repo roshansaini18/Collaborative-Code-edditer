@@ -50,7 +50,7 @@ const CodeEditorPanel = ({
   };
 
   return (
-    <section className="flex-grow flex flex-col fixed" style={{ width: editorWidth }}>
+    <section className="flex-grow flex flex-col relative" style={{ width: editorWidth }}>
       <div className="p-4 bg-gray-900 text-white flex justify-between items-center flex-wrap gap-2">
         <h2 className="text-lg font-mono">Code Editor</h2>
         <div className="flex gap-2">

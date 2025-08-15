@@ -88,9 +88,10 @@
 
 
 import React, { useState, useEffect } from 'react';
-// You no longer need uuidv4 on the client-side for room creation
-// import { v4 as uuidv4 } from 'uuid';
 import CodeRoom from '../CodeRoom';
+
+// ✅ Define the API URL once at the top of the file
+const apiUrl = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:3001';
 
 const Dashboard = ({ user, onLogout }) => {
   const [room, setRoom] = useState(() => {
@@ -107,15 +108,14 @@ const Dashboard = ({ user, onLogout }) => {
 
   const handleCreateRoom = async () => {
     try {
-      // Ask the backend to create a room and give us the ID
-      const response = await fetch('/api/create-room', { method: 'POST' });
+      // Now you can just use the 'apiUrl' constant
+      const response = await fetch(`${apiUrl}/api/create-room`, { method: 'POST' });
       if (!response.ok) {
         throw new Error('Failed to create room on the server.');
       }
       const data = await response.json();
-      const newRoomId = data.roomId;
-      setRoom(newRoomId);
-      console.log(`Creating and joining new room: ${newRoomId}`);
+      setRoom(data.roomId); // This is fine, or you could combine the lines
+      console.log(`Creating and joining new room: ${data.roomId}`);
     } catch (error) {
       console.error('Error creating room:', error);
       alert('Could not create a new room. Please try again later.');
@@ -126,14 +126,12 @@ const Dashboard = ({ user, onLogout }) => {
     const roomId = prompt('Enter the room ID to join:');
     if (roomId) {
       try {
-        // Check with the backend if the room ID is valid
-        const response = await fetch(`/api/check-room/${roomId}`);
+        // Use the same 'apiUrl' constant here
+        const response = await fetch(`${apiUrl}/api/check-room/${roomId}`);
         if (response.ok) {
-          // If response is OK (200), the room exists.
           setRoom(roomId);
           console.log(`Joining existing room: ${roomId}`);
         } else {
-          // If response is not OK (e.g., 404), the room doesn't exist.
           alert('Room not found. Please check the ID and try again.');
         }
       } catch (error) {
@@ -142,6 +140,8 @@ const Dashboard = ({ user, onLogout }) => {
       }
     }
   };
+
+  // ... (The rest of your component's JSX is correct and remains unchanged)
 
   if (room) {
     return (
@@ -155,7 +155,6 @@ const Dashboard = ({ user, onLogout }) => {
   }
 
   return (
-    // ... (The JSX for the dashboard remains unchanged)
     <div className="flex flex-col h-screen bg-gray-100 p-8 font-sans">
       <header className="flex justify-between items-center p-4 bg-white shadow-md rounded-lg mb-4">
         <div>
@@ -197,4 +196,3 @@ const Dashboard = ({ user, onLogout }) => {
 };
 
 export default Dashboard;
-

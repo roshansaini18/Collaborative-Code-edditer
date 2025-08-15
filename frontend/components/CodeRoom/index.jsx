@@ -621,7 +621,6 @@
 
 // export default CodeRoom;
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import * as Y from 'yjs';
@@ -634,7 +633,7 @@ import ChatSidebar from '../ChatSlidebar';
 import CodeEditorPanel from '../CodeEditorPanel';
 import OutputAndInputPanel from '../OutputAndInputPanel';
 import { Splitter } from 'antd';
-import { Code, MessageCircle, Terminal } from 'lucide-react'; // Using icons for clarity
+import { Code, MessageCircle, Terminal } from 'lucide-react'; // Icons for navigation
 
 const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
     const [users, setUsers] = useState([]);
@@ -647,10 +646,10 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
     const [isRunning, setIsRunning] = useState(false);
 
     const [editorHeight, setEditorHeight] = useState(500);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 968);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     
-    // NEW STATE: To manage the active view on mobile
-    const [activeView, setActiveView] = useState('editor');
+    // Default mobile view is now 'code'
+    const [activeView, setActiveView] = useState('code');
 
     const isDraggingEditor = useRef(false);
     const dragStartY = useRef(0);
@@ -664,7 +663,10 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
     const bindingRef = useRef(null);
     const pendingInitialCode = useRef(null);
 
-    // Handle window resize
+    // (No changes to useEffect hooks, currentUser, handleEditorDidMount, handleSendMessage, or resize logic)
+
+    // ... (Keep all existing useEffects and handlers here without any changes) ...
+     // Handle window resize
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize);
@@ -786,14 +788,15 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
         };
     }, []);
 
-    // Run code (no changes)
+
+    // Run code -> MODIFIED FOR MOBILE
     const handleRunCode = async () => {
         const code = editorRef.current.getValue();
         if (!code) return toast.error('Code cannot be empty!');
         
-        // On mobile, switch to the I/O view automatically after running code
+        // On mobile, switch to the OUTPUT view automatically after running code
         if (isMobile) {
-            setActiveView('io');
+            setActiveView('output');
         }
 
         setIsRunning(true);
@@ -838,34 +841,43 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
         }
     };
 
-    // Renders the mobile-specific layout with bottom navigation
+    // Renders the mobile-specific layout -> COMPLETELY REWRITTEN
     const renderMobileLayout = () => (
         <div className="flex flex-col h-full">
             <div className="flex-grow overflow-auto">
-                {activeView === 'editor' && (
-                    <CodeEditorPanel
-                        language={language}
-                        setLanguage={setLanguage}
-                        theme={theme}
-                        setTheme={setTheme}
-                        isRunning={isRunning}
-                        handleRunCode={handleRunCode}
-                        handleSaveCode={handleSaveCode}
-                        handleEditorDidMount={handleEditorDidMount}
-                        editorHeight="100%" // Take full available height
-                    />
+                {activeView === 'code' && (
+                    <Splitter layout="vertical" style={{ height: '100%' }}>
+                        <Splitter.Panel defaultSize={65} minSize={20}>
+                            <CodeEditorPanel
+                                language={language}
+                                setLanguage={setLanguage}
+                                theme={theme}
+                                setTheme={setTheme}
+                                isRunning={isRunning}
+                                handleRunCode={handleRunCode}
+                                handleSaveCode={handleSaveCode}
+                                handleEditorDidMount={handleEditorDidMount}
+                                editorHeight="100%"
+                            />
+                        </Splitter.Panel>
+                        <Splitter.Panel defaultSize={35} minSize={15}>
+                            <OutputAndInputPanel
+                                input={input}
+                                setInput={setInput}
+                            />
+                        </Splitter.Panel>
+                    </Splitter>
                 )}
-                {activeView === 'io' && (
-                    <div className="flex flex-col h-full">
-                       <div className="flex-1">
-                         <OutputAndInputPanel input={input} setInput={setInput} />
-                       </div>
-                       <div className="flex-1 bg-gray-900 text-white p-4 font-mono overflow-auto rounded-b-lg shadow-inner">
-                            <div>Output:</div>
-                            <pre className="whitespace-pre-wrap">{output}</pre>
-                       </div>
+
+                {activeView === 'output' && (
+                    <div className="flex flex-col h-full bg-gray-800 text-white font-mono">
+                        <h3 className="font-semibold p-3 border-b border-gray-700 text-gray-300">
+                            Output
+                        </h3>
+                        <pre className="p-3 whitespace-pre-wrap flex-grow overflow-auto">{output}</pre>
                     </div>
                 )}
+                
                 {activeView === 'chat' && (
                     <ChatSidebar
                         users={users}
@@ -876,17 +888,18 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
                     />
                 )}
             </div>
-            {/* Bottom Navigation Bar */}
+            
+            {/* Updated Bottom Navigation Bar */}
             <div className="flex justify-around items-center bg-gray-800 p-2 border-t border-gray-700">
-                <button onClick={() => setActiveView('editor')} className={`p-2 rounded-lg flex flex-col items-center ${activeView === 'editor' ? 'text-blue-400' : 'text-gray-400'}`}>
+                <button onClick={() => setActiveView('code')} className={`p-2 rounded-lg flex flex-col items-center w-20 ${activeView === 'code' ? 'text-blue-400' : 'text-gray-400'}`}>
                     <Code size={24} />
-                    <span className="text-xs mt-1">Editor</span>
+                    <span className="text-xs mt-1">Code</span>
                 </button>
-                <button onClick={() => setActiveView('io')} className={`p-2 rounded-lg flex flex-col items-center ${activeView === 'io' ? 'text-blue-400' : 'text-gray-400'}`}>
+                <button onClick={() => setActiveView('output')} className={`p-2 rounded-lg flex flex-col items-center w-20 ${activeView === 'output' ? 'text-blue-400' : 'text-gray-400'}`}>
                     <Terminal size={24} />
-                    <span className="text-xs mt-1">I/O</span>
+                    <span className="text-xs mt-1">Output</span>
                 </button>
-                <button onClick={() => setActiveView('chat')} className={`p-2 rounded-lg flex flex-col items-center ${activeView === 'chat' ? 'text-blue-400' : 'text-gray-400'}`}>
+                <button onClick={() => setActiveView('chat')} className={`p-2 rounded-lg flex flex-col items-center w-20 ${activeView === 'chat' ? 'text-blue-400' : 'text-gray-400'}`}>
                     <MessageCircle size={24} />
                     <span className="text-xs mt-1">Chat</span>
                 </button>
@@ -894,7 +907,7 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
         </div>
     );
     
-    // Renders the original desktop layout with splitters
+    // Renders the original desktop layout (no changes)
     const renderDesktopLayout = () => (
         <Splitter style={{ height: '100%' }} layout="horizontal">
             <Splitter.Panel minSize={30} defaultSize={50}>
@@ -908,13 +921,13 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
                     handleSaveCode={handleSaveCode}
                     handleEditorDidMount={handleEditorDidMount}
                     editorHeight={editorHeight}
-                    onMouseDownEditor={handleEditorResizeStart} // Resizing is only for desktop
+                    onMouseDownEditor={handleEditorResizeStart}
                 />
             </Splitter.Panel>
             <Splitter.Panel minSize={20} defaultSize={25}>
                 <Splitter layout="vertical">
                     <Splitter.Panel defaultSize={50}>
-                        <OutputAndInputPanel input={input} setInput={setInput} output={output} />
+                        <OutputAndInputPanel input={input} setInput={setInput} />
                     </Splitter.Panel>
                      <Splitter.Panel defaultSize={50}>
                         <div className="bg-gray-900 text-white p-4 font-mono overflow-auto rounded-b-lg shadow-inner h-full">
@@ -950,7 +963,6 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
                     toast.success('Room ID copied 📋');
                 }}
             />
-            {/* Main layout conditional rendering */}
             <main className="flex-grow overflow-hidden">
                 {isMobile ? renderMobileLayout() : renderDesktopLayout()}
             </main>
@@ -959,4 +971,3 @@ const CodeRoom = ({ user, roomId, onLeave, onLogout }) => {
 };
 
 export default CodeRoom;
-

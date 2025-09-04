@@ -8,7 +8,13 @@ An interactive, real-time collaborative coding environment.
 
 [[Live View](https://collaborative-code-kelj.onrender.com/)]
 
----
+<img width="1917" height="824" alt="Screenshot 2025-09-05 032751" src="https://github.com/user-attachments/assets/e72fd67e-c57b-4efc-88c7-fe81bc183f25" />
+
+<img width="1914" height="830" alt="Screenshot 2025-09-05 032921" src="https://github.com/user-attachments/assets/a5ef9c38-7d19-488e-890c-51190e85fa3d" />
+
+<img width="1919" height="859" alt="Screenshot 2025-09-05 032938" src="https://github.com/user-attachments/assets/ea6f4172-61b9-49a3-adb5-9b9aef8287af" />
+
+<img width="1919" height="865" alt="Screenshot 2025-09-05 033134" src="https://github.com/user-attachments/assets/6c4014d5-41d5-4ad5-a9c0-26ed9ebd05a0" />
 
 ## ✨ Features
 
